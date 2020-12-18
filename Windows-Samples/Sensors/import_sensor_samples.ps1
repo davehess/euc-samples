@@ -1,10 +1,13 @@
 ﻿<# Workspace ONE Sensors Importer
 
 # Author:  Josue Negron - jnegron@vmware.com
-# Contributors: Chris Halstead - chealstead@vmware.com
+# Contributors: Chris Halstead - chealstead@vmware.com, Dave Hess - dhess@vmware.com
 # Created: December 2018
-# Updated: May 2020
-# Version 1.3
+# Updated: Dec 18 2020
+# Version 1.3(dh) from 1.3
+
+
+
 
   .SYNOPSIS
     This Powershell script allows you to automatically import PowerShell scripts as Workspace ONE Sensors in the Workspace ONE UEM Console. 
@@ -21,9 +24,9 @@
         -WorkspaceONEServer "https://as###.awmdm.com" `
         -WorkspaceONEAdmin "administrator" `
         -WorkspaceONEAdminPW "P@ssw0rd" `
-        -WorkspaceONEAPIKey "7t5NQg8bGUQdRTGtmDBXknho9Bu9W+7hnvYGzyCAP+E=" `
-        -OrganizationGroupName "techzone" `
-        -SmartGroupID "41" `
+        -WorkspaceONEAPIKey "thisisakey" `
+        -OrganizationGroupName "namehere" `
+        -SmartGroupID "40044" `
         -UpdateSensors
 
     .PARAMETER WorkspaceONEServer
@@ -192,6 +195,7 @@ Function Get-Sensors {
 }
 
 # Creates a new Sensor
+#todo - add architecture choices
 Function Set-Sensors($Description, $Context, $SensorName, $ResponseType, $Script) {
     Write-Host("Creating new Sensor " + $SensorName)
     $endpointURL = $URL + "/mdm/devicesensors/"
@@ -213,6 +217,7 @@ Function Set-Sensors($Description, $Context, $SensorName, $ResponseType, $Script
 }
 
 # Updates Exisiting Sensors
+#todo - add architecture choices
 Function Update-Sensors($Description, $Context, $SensorName, $ResponseType, $Script) {
     Write-Host("Creating new Sensor " + $SensorName)
     $endpointURL = $URL + "/mdm/devicesensors/" + $CurrentSensorUUID
@@ -235,17 +240,21 @@ Function Update-Sensors($Description, $Context, $SensorName, $ResponseType, $Scr
 }
 
 # Assigns Sensors
+#DH - Sensors v2 from /mdm/devicesensors/assign to /mdm/devicesensors/$SensorUUID/assignment
+#todo - add input for schedule versus triggered or both, 
+#todo - add event-driven triggers with event_triggers array ["UNKNOWN", "LOGIN", "LOGOUT", "STARTUP", "USER_SWITCH"]
 Function Assign-Sensors($SensorUUID, $SmartGroupUUID) {
-    $endpointURL = $URL + "/mdm/devicesensors/assign"
-    $SensorBody = @()
-    $SensorBody += "$SensorUUID" 
+    $endpointURL = $URL + "/mdm/devicesensors/"+"$SensorUUID"+"/assignment"
+    $SensorBody = @() 
+								 
     $SmartBody = @()
-    $SmartBody += "$SmartGroupUUID"
+    $SmartBody += "["+"$SmartGroupUUID"+"]"
     $body = [pscustomobject]@{
-        'device_sensors'          = $SensorBody;
-        'organization_group_uuid' = "$WorkspaceONEGroupUUID";
-        'smart_groups'	          = $SmartBody;
-            }
+        'name'                    = "Import Sensor Assignment";
+        'smart_group_uuids'	          = $SmartBody;
+        'trigger_type'          = "SCHEDULE";
+#        'event_triggers'          = "[]";
+        }
     $json = $body | ConvertTo-Json
     $webReturn = Invoke-RestMethod -Method Post -Uri $endpointURL -Headers $header -Body $json
 }
